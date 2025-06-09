@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import p5 from 'p5';
 import './index.css';
@@ -105,9 +104,13 @@ const App = () => {
             newGrid[row] = [...newGrid[row]];
             newGrid[row][col] = currentPlayer;
             setGrid(newGrid);
-            setStatus(`${currentPlayer === 'red' ? 'Blue' : 'Red'}'s Turn`);
             if (isBoardFull(newGrid)) {
-              finalRound();
+              setPhase('claim');
+              setStatus(`${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}'s Turn (Claim Square)`);
+              setCanPass(true);
+              if (gameMode === 'vsComputer' && currentPlayer === 'blue') {
+                setTimeout(() => claimSquare(true), 800);
+              }
             } else {
               switchPlayer();
             }
@@ -235,23 +238,35 @@ const App = () => {
       
       setTimeout(() => {
         setSelectedSquare(null);
-        setPhase('place');
-        setStatus(`${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}'s Turn (Place Mark)`);
-        setCanPass(false);
+        if (isBoardFull(currentGrid)) {
+          finalRound();
+        } else {
+          setPhase('place');
+          setStatus(`${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}'s Turn (Place Mark)`);
+          setCanPass(false);
+        }
       }, 1200);
     } else {
-      // No squares to claim, move to placement phase
-      setPhase('place');
-      setStatus(`${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}'s Turn (Place Mark)`);
-      setCanPass(true);
+      // No squares to claim, move to placement phase or final round if board is full
+      if (isBoardFull(currentGrid)) {
+        finalRound();
+      } else {
+        setPhase('place');
+        setStatus(`${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}'s Turn (Place Mark)`);
+        setCanPass(true);
+      }
     }
   };
 
   const passClaim = () => {
     if (gameOver || phase !== 'claim') return;
-    setPhase('place');
-    setStatus(`${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}'s Turn (Place Mark)`);
-    setCanPass(true);
+    if (isBoardFull(gridRef.current)) {
+      finalRound();
+    } else {
+      setPhase('place');
+      setStatus(`${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}'s Turn (Place Mark)`);
+      setCanPass(true);
+    }
   };
 
   const computerPlaceMark = () => {
@@ -325,7 +340,10 @@ const App = () => {
       setStatus("Blue placed a mark");
       
       if (isBoardFull(newGrid)) {
-        finalRound();
+        setPhase('claim');
+        setStatus("Blue's Turn (Claim Square)");
+        setCanPass(true);
+        setTimeout(() => claimSquare(true), 800);
       } else {
         switchPlayer();
       }
@@ -384,35 +402,17 @@ const App = () => {
       
       setTimeout(() => {
         setSelectedSquare(null);
-        const nextPlayer = currentPlayer === 'red' ? 'blue' : 'red';
-        setCurrentPlayer(nextPlayer);
-        setStatus(`${nextPlayer.charAt(0).toUpperCase() + nextPlayer.slice(1)}'s Turn (Final Round)`);
-        
-        // Check if game should end
-        if (findSquares(nextPlayer, newGrid).length === 0) {
-          endGame();
-        }
+        endGame();
       }, 1200);
     } else {
-      const nextPlayer = currentPlayer === 'red' ? 'blue' : 'red';
-      setCurrentPlayer(nextPlayer);
-      setStatus(`${nextPlayer.charAt(0).toUpperCase() + nextPlayer.slice(1)}'s Turn (Final Round)`);
-      
-      // Check if game should end
-      if (findSquares(nextPlayer, currentGrid).length === 0) {
-        endGame();
-      }
+      endGame();
     }
   };
 
   const endGame = () => {
     setGameOver(true);
-    let winner = '';
-    if (redScore > blueScore) winner = 'Red';
-    else if (blueScore > redScore) winner = 'Blue';
-    else winner = 'Tie';
-    
-    setStatus(`Game Over! Winner: ${winner}`);
+    let winner = redScore > blueScore ? 'Red' : blueScore > redScore ? 'Blue' : 'Tie';
+    setStatus(`Game Over! Winner: ${winner} (Red: ${redScore}, Blue: ${blueScore})`);
   };
 
   const startGame = (mode) => {
