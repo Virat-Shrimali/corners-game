@@ -1,0 +1,1313 @@
+// import React, { useState, useEffect, useRef } from 'react';
+// import p5 from 'p5';
+// import './index.css';
+
+// const positionalWeight = Array.from({length: 7}, (_, i) => 
+//   Array.from({length: 7}, (_, j) => 4 - Math.max(Math.abs(i - 3), Math.abs(j - 3)))
+// );
+
+// const App = () => {
+//   const [gameMode, setGameMode] = useState(null);
+//   const [grid, setGrid] = useState(() => Array(7).fill().map(() => Array(7).fill(null)));
+//   const [currentPlayer, setCurrentPlayer] = useState('red');
+//   const [redScore, setRedScore] = useState(0);
+//   const [blueScore, setBlueScore] = useState(0);
+//   const [gameOver, setGameOver] = useState(false);
+//   const [selectedSquare, setSelectedSquare] = useState(null);
+//   const [marksPlacedThisTurn, setMarksPlacedThisTurn] = useState(0);
+//   const [hasClaimedThisTurn, setHasClaimedThisTurn] = useState(false);
+//   const [status, setStatus] = useState("Select Game Mode");
+//   const p5Ref = useRef(null);
+//   const canvasRef = useRef(null);
+
+//   useEffect(() => {
+//     if (gameMode) {
+//       const sketch = (p) => {
+//         p.setup = () => {
+//           let canvas = p.createCanvas(350, 350);
+//           canvasRef.current = canvas;
+//           canvas.parent('game-canvas');
+//         };
+
+//         p.draw = () => {
+//           p.background(255);
+//           p.stroke(0);
+//           p.strokeWeight(2);
+//           for (let i = 0; i <= 7; i++) {
+//             p.line(i * 50, 0, i * 50, 350);
+//             p.line(0, i * 50, 350, i * 50);
+//           }
+//           for (let i = 0; i < 7; i++) {
+//             for (let j = 0; j < 7; j++) {
+//               if (grid[i][j]) {
+//                 let isShaded = grid[i][j].includes('shaded');
+//                 if (grid[i][j].includes('red')) {
+//                   p.fill(255, 0, 0);
+//                   p.ellipse(j * 50 + 25, i * 50 + 25, 30, 30);
+//                   if (isShaded) {
+//                     p.fill(200, 0, 0);
+//                     p.ellipse(j * 50 + 25, i * 50 + 25, 15, 15);
+//                   }
+//                 } else if (grid[i][j].includes('blue')) {
+//                   p.fill(0, 0, 255);
+//                   p.ellipse(j * 50 + 25, i * 50 + 25, 30, 30);
+//                   if (isShaded) {
+//                     p.fill(0, 0, 200);
+//                     p.ellipse(j * 50 + 25, i * 50 + 25, 15, 15);
+//                   }
+//                 }
+//               }
+//             }
+//           }
+//           if (selectedSquare) {
+//             p.stroke(0, 255, 0);
+//             p.strokeWeight(6);
+//             p.noFill();
+//             let [x1, y1, x2, y2, x3, y3, x4, y4] = selectedSquare;
+//             let points = [[x1, y1], [x2, y2], [x3, y3], [x4, y4]];
+//             points.sort((a, b) => (a[0] === b[0] ? a[1] - b[1] : a[0] - b[0]));
+//             p.quad(
+//               points[0][1] * 50 + 25, points[0][0] * 50 + 25,
+//               points[1][1] * 50 + 25, points[1][0] * 50 + 25,
+//               points[2][1] * 50 + 25, points[2][0] * 50 + 25,
+//               points[3][1] * 50 + 25, points[3][0] * 50 + 25
+//             );
+//           }
+//         };
+
+//         p.mousePressed = () => {
+//           if (gameOver || marksPlacedThisTurn > 0 || (gameMode === 'vsComputer' && currentPlayer === 'blue')) return;
+//           let row = Math.floor(p.mouseY / 50);
+//           let col = Math.floor(p.mouseX / 50);
+//           if (row >= 0 && row < 7 && col >= 0 && col < 7 && !grid[row][col]) {
+//             let newGrid = [...grid];
+//             newGrid[row] = [...newGrid[row]];
+//             newGrid[row][col] = currentPlayer;
+//             setGrid(newGrid);
+//             setMarksPlacedThisTurn(1);
+//             setStatus(`${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}'s Turn (Claim Square or Pass)`);
+//             if (isBoardFull(newGrid)) {
+//               finalRound();
+//             }
+//           }
+//         };
+//       };
+
+//       p5Ref.current = new p5(sketch);
+//       return () => p5Ref.current.remove();
+//     }
+//   }, [gameMode, grid, currentPlayer, gameOver, marksPlacedThisTurn, selectedSquare]);
+
+  
+  
+
+//   const findSquares = (player, currentGrid) => {
+//     let squares = [];
+//     let playerMarks = [];
+//     for (let i = 0; i < 7; i++) {
+//       for (let j = 0; j < 7; j++) {
+//         if (currentGrid[i][j]?.includes(player)) {
+//           playerMarks.push([i, j]);
+//         }
+//       }
+//     }
+//     for (let a = 0; a < playerMarks.length; a++) {
+//       for (let b = a + 1; b < playerMarks.length; b++) {
+//         for (let c = b + 1; c < playerMarks.length; c++) {
+//           for (let d = c + 1; d < playerMarks.length; d++) {
+//             let points = [playerMarks[a], playerMarks[b], playerMarks[c], playerMarks[d]];
+//             if (isSquare(points)) {
+//               let sortedPoints = [...points].sort((p1, p2) => p1[0] - p2[0] || p1[1] - p2[1]);
+//               squares.push([
+//                 sortedPoints[0][0], sortedPoints[0][1],
+//                 sortedPoints[1][0], sortedPoints[1][1],
+//                 sortedPoints[2][0], sortedPoints[2][1],
+//                 sortedPoints[3][0], sortedPoints[3][1]
+//               ]);
+//             }
+//           }
+//         }
+//       }
+//     }
+//     return squares;
+//   };
+
+//   const isSquare = (points) => {
+//     const epsilon = 1e-6;
+//     let distances = [];
+//     for (let i = 0; i < 4; i++) {
+//       for (let j = i + 1; j < 4; j++) {
+//         let dx = points[i][0] - points[j][0];
+//         let dy = points[i][1] - points[j][1];
+//         let dist = Math.sqrt(dx * dx + dy * dy);
+//         distances.push(dist);
+//       }
+//     }
+//     distances.sort((a, b) => a - b);
+//     let uniqueDists = [];
+//     distances.forEach(dist => {
+//       if (!uniqueDists.some(dist2 => Math.abs(dist2 - dist) < epsilon)) {
+//         uniqueDists.push(dist);
+//       }
+//     });
+//     if (uniqueDists.length !== 2) return false;
+//     let s = uniqueDists[0];
+//     let d = uniqueDists[1];
+//     if (Math.abs(d / s - Math.sqrt(2)) > epsilon) return false;
+//     let countS = distances.filter(dist => Math.abs(dist - s) < epsilon).length;
+//     let countD = distances.filter(dist => Math.abs(dist - d) < epsilon).length;
+//     return countS === 4 && countD === 2;
+//   };
+
+//   const claimSquare = (isComputer = false) => {
+//     if (gameOver || hasClaimedThisTurn || marksPlacedThisTurn === 0) return;
+//     let squares = findSquares(currentPlayer, grid);
+//     if (squares.length > 0) {
+//       let bestSquare = squares[0];
+//       if (isComputer) {
+//         let maxScore = -1;
+//         squares.forEach(square => {
+//           let [x1, y1, x2, y2, x3, y3, x4, y4] = square;
+//           let score = 0;
+//           if (!grid[x1][y1].includes('shaded')) score++;
+//           if (!grid[x2][y2].includes('shaded')) score++;
+//           if (!grid[x3][y3].includes('shaded')) score++;
+//           if (!grid[x4][y4].includes('shaded')) score++;
+//           if (score > maxScore) {
+//             maxScore = score;
+//             bestSquare = square;
+//           }
+//         });
+//       }
+//       setSelectedSquare(bestSquare);
+//       let [x1, y1, x2, y2, x3, y3, x4, y4] = bestSquare;
+//       let newGrid = [...grid];
+//       let score = 0;
+//       if (!newGrid[x1][y1].includes('shaded')) { newGrid[x1][y1] += '-shaded'; score++; }
+//       if (!newGrid[x2][y2].includes('shaded')) { newGrid[x2][y2] += '-shaded'; score++; }
+//       if (!newGrid[x3][y3].includes('shaded')) { newGrid[x3][y3] += '-shaded'; score++; }
+//       if (!newGrid[x4][y4].includes('shaded')) { newGrid[x4][y4] += '-shaded'; score++; }
+//       setGrid(newGrid);
+//       if (currentPlayer === 'red') {
+//         setRedScore(prev => prev + score);
+//       } else {
+//         setBlueScore(prev => prev + score);
+//       }
+//       setHasClaimedThisTurn(true);
+//       setTimeout(() => {
+//         setSelectedSquare(null);
+//         if (isBoardFull(newGrid)) {
+//           finalRound();
+//         } else {
+//           switchPlayer();
+//         }
+//       }, 1500);
+//     } else {
+//       setHasClaimedThisTurn(true);
+//       setStatus(`${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}'s Turn (No Squares to Claim)`);
+//       if (isBoardFull(grid)) {
+//         finalRound();
+//       } else {
+//         switchPlayer();
+//       }
+//     }
+//   };
+
+//   const computerMove = () => {
+//     if (gameOver || currentPlayer !== 'blue') return;
+//     if (marksPlacedThisTurn === 0 && !hasClaimedThisTurn) {
+//       computerPlaceMark();
+//     }
+//   };
+
+//   const computerPlaceMark = () => {
+//     let emptyCells = [];
+//     for (let i = 0; i < 7; i++) {
+//       for (let j = 0; j < 7; j++) {
+//         if (!grid[i][j]) emptyCells.push([i, j]);
+//       }
+//     }
+//     if (emptyCells.length === 0) return;
+//     let bestMove = null;
+//     let maxScore = -Infinity;
+//     emptyCells.forEach(([row, col]) => {
+//       let tempGrid = JSON.parse(JSON.stringify(grid));
+//       tempGrid[row][col] = 'blue';
+//       let allPossibleSquares = findSquares('blue', tempGrid);
+//       let bestClaimScore = 0;
+//       if (allPossibleSquares.length > 0) {
+//         bestClaimScore = Math.max(...allPossibleSquares.map(square => {
+//           let unshadedCount = 0;
+//           for (let k = 0; k < 8; k += 2) {
+//             let r = square[k];
+//             let c = square[k + 1];
+//             if (!tempGrid[r][c].includes('shaded')) unshadedCount++;
+//           }
+//           return unshadedCount;
+//         }));
+//       }
+//       let blockTempGrid = JSON.parse(JSON.stringify(grid));
+//       blockTempGrid[row][col] = 'red';
+//       let opponentSquares = findSquares('red', blockTempGrid);
+//       let blockScore = opponentSquares.length > 0 ? 1 : 0;
+//       let positionalScore = positionalWeight[row][col];
+//       let totalScore = bestClaimScore + 5 * blockScore + positionalScore;
+//       if (totalScore > maxScore) {
+//         maxScore = totalScore;
+//         bestMove = [row, col];
+//       }
+//     });
+//     if (!bestMove) {
+//       bestMove = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+//     }
+//     let [row, col] = bestMove;
+//     let newGrid = [...grid];
+//     newGrid[row] = [...newGrid[row]];
+//     newGrid[row][col] = 'blue';
+//     setGrid(newGrid);
+//     setMarksPlacedThisTurn(1);
+//     setStatus("Blue's Turn (Claim Square or Pass)");
+//     setTimeout(() => {
+//       claimSquare(true);
+//       if (gameMode === 'vsComputer' && !gameOver) {
+//         setTimeout(computerMove, 1000);
+//       }
+//     }, 1000);
+//   };
+
+//   const switchPlayer = () => {
+//     setCurrentPlayer(prev => prev === 'red' ? 'blue' : 'red');
+//     setMarksPlacedThisTurn(0);
+//     setHasClaimedThisTurn(false);
+//     setStatus(`${currentPlayer === 'red' ? 'Blue' : 'Red'}'s Turn (Place Mark)`);
+//   };
+
+//   const isBoardFull = (gridState) => {
+//     return gridState.every(row => row.every(cell => cell !== null));
+//   };
+
+//   const finalRound = () => {
+//     let squares = findSquares(currentPlayer, grid);
+//     if (squares.length > 0) {
+//       let bestSquare = squares[0];
+//       let maxScore = -1;
+//       squares.forEach(square => {
+//         let [x1, y1, x2, y2, x3, y3, x4, y4] = square;
+//         let score = 0;
+//         if (!grid[x1][y1].includes('shaded')) score++;
+//         if (!grid[x2][y2].includes('shaded')) score++;
+//         if (!grid[x3][y3].includes('shaded')) score++;
+//         if (!grid[x4][y4].includes('shaded')) score++;
+//         if (score > maxScore) {
+//           maxScore = score;
+//           bestSquare = square;
+//         }
+//       });
+//       setSelectedSquare(bestSquare);
+//       let [x1, y1, x2, y2, x3, y3, x4, y4] = bestSquare;
+//       let newGrid = [...grid];
+//       let score = 0;
+//       if (!newGrid[x1][y1].includes('shaded')) { newGrid[x1][y1] += '-shaded'; score++; }
+//       if (!newGrid[x2][y2].includes('shaded')) { newGrid[x2][y2] += '-shaded'; score++; }
+//       if (!newGrid[x3][y3].includes('shaded')) { newGrid[x3][y3] += '-shaded'; score++; }
+//       if (!newGrid[x4][y4].includes('shaded')) { newGrid[x4][y4] += '-shaded'; score++; }
+//       setGrid(newGrid);
+//       if (currentPlayer === 'red') {
+//         setRedScore(prev => prev + score);
+//       } else {
+//         setBlueScore(prev => prev + score);
+//       }
+//       setTimeout(() => {
+//         setSelectedSquare(null);
+//         setCurrentPlayer(prev => prev === 'red' ? 'blue' : 'red');
+//         setStatus(`${currentPlayer === 'red' ? 'Blue' : 'Red'}'s Turn (Claim Square or Pass)`);
+//         if (gameMode === 'vsComputer' && currentPlayer === 'red' && !gameOver) {
+//           setTimeout(computerMove, 1000);
+//         } else if (findSquares(currentPlayer === 'red' ? 'blue' : 'red', grid).length === 0) {
+//           setGameOver(true);
+//           let winner = redScore > blueScore ? 'Red' : blueScore > redScore ? 'Blue' : 'Tie';
+//           setStatus(`Game Over! Winner: ${winner}`);
+//         }
+//       }, 1500);
+//     } else {
+//       setCurrentPlayer(prev => prev === 'red' ? 'blue' : 'red');
+//       setStatus(`${currentPlayer === 'red' ? 'Blue' : 'Red'}'s Turn (Claim Square or Pass)`);
+//       if (gameMode === 'vsComputer' && currentPlayer === 'red' && !gameOver) {
+//         setTimeout(computerMove, 1000);
+//       } else if (findSquares(currentPlayer === 'red' ? 'blue' : 'red', grid).length === 0) {
+//         setGameOver(true);
+//         let winner = redScore > blueScore ? 'Red' : blueScore > redScore ? 'Blue' : 'Tie';
+//         setStatus(`Game Over! Winner: ${winner}`);
+//       }
+//     }
+//   };
+
+//   const startGame = (mode) => {
+//     setGameMode(mode);
+//     setGrid(Array(7).fill().map(() => Array(7).fill(null)));
+//     setCurrentPlayer('red');
+//     setRedScore(0);
+//     setBlueScore(0);
+//     setGameOver(false);
+//     setSelectedSquare(null);
+//     setMarksPlacedThisTurn(0);
+//     setHasClaimedThisTurn(false);
+//     setStatus("Red's Turn (Place Mark)");
+//   };
+
+//   return (
+//     <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-auto">
+//       <h1 className="text-2xl font-bold text-center mb-4 text-gray-800">Corners Game</h1>
+//       {!gameMode ? (
+//         <div className="text-center">
+//           <h2 className="text-lg font-semibold mb-2">Select Game Mode</h2>
+//           <div className="flex justify-center space-x-4">
+//             <label className="flex items-center">
+//               <input
+//                 type="radio"
+//                 name="gameMode"
+//                 value="twoPlayer"
+//                 onChange={() => startGame('twoPlayer')}
+//                 className="mr-2"
+//               />
+//               2 Players
+//             </label>
+//             <label className="flex items-center">
+//               <input
+//                 type="radio"
+//                 name="gameMode"
+//                 value="vsComputer"
+//                 onChange={() => startGame('vsComputer')}
+//                 className="mr-2"
+//               />
+//               Vs. Computer
+//             </label>
+//           </div>
+//         </div>
+//       ) : (
+//         <>
+//           <div id="game-canvas" className="border border-gray-300 mx-auto"></div>
+//           <div className="text-center mt-4">
+//             <div className={`text-lg font-semibold ${gameOver ? 'text-gray-600' : currentPlayer === 'red' ? 'text-red-600' : 'text-blue-600'}`}>
+//               {status}
+//             </div>
+//             <div className="text-md mt-2">
+//               <span className="text-red-600">Red: {redScore}</span> | <span className="text-blue-600">Blue: {blueScore}</span>
+//             </div>
+//             <button
+//               onClick={() => claimSquare(false)}
+//               disabled={gameOver || hasClaimedThisTurn || marksPlacedThisTurn === 0 || (gameMode === 'vsComputer' && currentPlayer === 'blue')}
+//               className={`mt-4 px-4 py-2 rounded-lg font-semibold text-white transition duration-300 
+//                 ${gameOver || hasClaimedThisTurn || marksPlacedThisTurn === 0 || (gameMode === 'vsComputer' && currentPlayer === 'blue') ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}
+//             >
+//               Claim Square or Pass
+//             </button>
+//             <button
+//               onClick={() => startGame(null)}
+//               className="mt-2 px-4 py-2 rounded-lg font-semibold text-white bg-blue-500 hover:bg-blue-600 transition duration-300"
+//             >
+//               Restart Game
+//             </button>
+//           </div>
+//         </>
+//       )}
+//     </div>
+//   );
+// };
+
+// export default App;
+
+// import React, { useState, useEffect, useRef } from 'react';
+// import p5 from 'p5';
+// import './index.css';
+
+// const positionalWeight = Array.from({length: 7}, (_, i) => 
+//   Array.from({length: 7}, (_, j) => 4 - Math.max(Math.abs(i - 3), Math.abs(j - 3)))
+// );
+
+// const App = () => {
+//   const [gameMode, setGameMode] = useState(null);
+//   const [grid, setGrid] = useState(() => Array(7).fill().map(() => Array(7).fill(null)));
+//   const [currentPlayer, setCurrentPlayer] = useState('red');
+//   const [redScore, setRedScore] = useState(0);
+//   const [blueScore, setBlueScore] = useState(0);
+//   const [gameOver, setGameOver] = useState(false);
+//   const [selectedSquare, setSelectedSquare] = useState(null);
+//   const [marksPlacedThisTurn, setMarksPlacedThisTurn] = useState(0);
+//   const [hasClaimedThisTurn, setHasClaimedThisTurn] = useState(false);
+//   const [status, setStatus] = useState("Select Game Mode");
+//   const p5Ref = useRef(null);
+//   const canvasRef = useRef(null);
+
+//   // Handle computer turns automatically
+//   useEffect(() => {
+//     if (gameMode === 'vsComputer' && currentPlayer === 'blue' && !gameOver) {
+//       if (marksPlacedThisTurn === 0 && !hasClaimedThisTurn) {
+//         computerPlaceMark();
+//       }
+//     }
+//   }, [gameMode, currentPlayer, gameOver, marksPlacedThisTurn, hasClaimedThisTurn]);
+
+//   useEffect(() => {
+//     if (gameMode) {
+//       const sketch = (p) => {
+//         p.setup = () => {
+//           let canvas = p.createCanvas(350, 350);
+//           canvasRef.current = canvas;
+//           canvas.parent('game-canvas');
+//         };
+
+//         p.draw = () => {
+//           p.background(255);
+//           p.stroke(0);
+//           p.strokeWeight(2);
+//           for (let i = 0; i <= 7; i++) {
+//             p.line(i * 50, 0, i * 50, 350);
+//             p.line(0, i * 50, 350, i * 50);
+//           }
+//           for (let i = 0; i < 7; i++) {
+//             for (let j = 0; j < 7; j++) {
+//               if (grid[i][j]) {
+//                 let isShaded = grid[i][j].includes('shaded');
+//                 if (grid[i][j].includes('red')) {
+//                   p.fill(255, 0, 0);
+//                   p.ellipse(j * 50 + 25, i * 50 + 25, 30, 30);
+//                   if (isShaded) {
+//                     p.fill(200, 0, 0);
+//                     p.ellipse(j * 50 + 25, i * 50 + 25, 15, 15);
+//                   }
+//                 } else if (grid[i][j].includes('blue')) {
+//                   p.fill(0, 0, 255);
+//                   p.ellipse(j * 50 + 25, i * 50 + 25, 30, 30);
+//                   if (isShaded) {
+//                     p.fill(0, 0, 200);
+//                     p.ellipse(j * 50 + 25, i * 50 + 25, 15, 15);
+//                   }
+//                 }
+//               }
+//             }
+//           }
+//           if (selectedSquare) {
+//             p.stroke(0, 255, 0);
+//             p.strokeWeight(6);
+//             p.noFill();
+//             let [x1, y1, x2, y2, x3, y3, x4, y4] = selectedSquare;
+//             let points = [[x1, y1], [x2, y2], [x3, y3], [x4, y4]];
+//             points.sort((a, b) => (a[0] === b[0] ? a[1] - b[1] : a[0] - b[0]));
+//             p.quad(
+//               points[0][1] * 50 + 25, points[0][0] * 50 + 25,
+//               points[1][1] * 50 + 25, points[1][0] * 50 + 25,
+//               points[2][1] * 50 + 25, points[2][0] * 50 + 25,
+//               points[3][1] * 50 + 25, points[3][0] * 50 + 25
+//             );
+//           }
+//         };
+
+//         p.mousePressed = () => {
+//           if (gameOver || marksPlacedThisTurn > 0 || (gameMode === 'vsComputer' && currentPlayer === 'blue')) return;
+//           let row = Math.floor(p.mouseY / 50);
+//           let col = Math.floor(p.mouseX / 50);
+//           if (row >= 0 && row < 7 && col >= 0 && col < 7 && !grid[row][col]) {
+//             let newGrid = [...grid];
+//             newGrid[row] = [...newGrid[row]];
+//             newGrid[row][col] = currentPlayer;
+//             setGrid(newGrid);
+//             setMarksPlacedThisTurn(1);
+//             setStatus(`${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}'s Turn (Claim Square or Pass)`);
+//             if (isBoardFull(newGrid)) {
+//               finalRound();
+//             }
+//           }
+//         };
+//       };
+
+//       p5Ref.current = new p5(sketch);
+//       return () => p5Ref.current.remove();
+//     }
+//   }, [gameMode, grid, currentPlayer, gameOver, marksPlacedThisTurn, selectedSquare]);
+
+//   const findSquares = (player, currentGrid) => {
+//     let squares = [];
+//     let playerMarks = [];
+//     for (let i = 0; i < 7; i++) {
+//       for (let j = 0; j < 7; j++) {
+//         if (currentGrid[i][j]?.includes(player)) {
+//           playerMarks.push([i, j]);
+//         }
+//       }
+//     }
+//     for (let a = 0; a < playerMarks.length; a++) {
+//       for (let b = a + 1; b < playerMarks.length; b++) {
+//         for (let c = b + 1; c < playerMarks.length; c++) {
+//           for (let d = c + 1; d < playerMarks.length; d++) {
+//             let points = [playerMarks[a], playerMarks[b], playerMarks[c], playerMarks[d]];
+//             if (isSquare(points)) {
+//               let sortedPoints = [...points].sort((p1, p2) => p1[0] - p2[0] || p1[1] - p2[1]);
+//               squares.push([
+//                 sortedPoints[0][0], sortedPoints[0][1],
+//                 sortedPoints[1][0], sortedPoints[1][1],
+//                 sortedPoints[2][0], sortedPoints[2][1],
+//                 sortedPoints[3][0], sortedPoints[3][1]
+//               ]);
+//             }
+//           }
+//         }
+//       }
+//     }
+//     return squares;
+//   };
+
+//   const isSquare = (points) => {
+//     const epsilon = 1e-6;
+//     let distances = [];
+//     for (let i = 0; i < 4; i++) {
+//       for (let j = i + 1; j < 4; j++) {
+//         let dx = points[i][0] - points[j][0];
+//         let dy = points[i][1] - points[j][1];
+//         let dist = Math.sqrt(dx * dx + dy * dy);
+//         distances.push(dist);
+//       }
+//     }
+//     distances.sort((a, b) => a - b);
+//     let uniqueDists = [];
+//     distances.forEach(dist => {
+//       if (!uniqueDists.some(dist2 => Math.abs(dist2 - dist) < epsilon)) {
+//         uniqueDists.push(dist);
+//       }
+//     });
+//     if (uniqueDists.length !== 2) return false;
+//     let s = uniqueDists[0];
+//     let d = uniqueDists[1];
+//     if (Math.abs(d / s - Math.sqrt(2)) > epsilon) return false;
+//     let countS = distances.filter(dist => Math.abs(dist - s) < epsilon).length;
+//     let countD = distances.filter(dist => Math.abs(dist - d) < epsilon).length;
+//     return countS === 4 && countD === 2;
+//   };
+
+//   const claimSquare = (isComputer = false) => {
+//     if (gameOver || hasClaimedThisTurn || marksPlacedThisTurn === 0) return;
+//     let squares = findSquares(currentPlayer, grid);
+//     if (squares.length > 0) {
+//       let bestSquare = squares[0];
+//       if (isComputer) {
+//         let maxScore = -1;
+//         squares.forEach(square => {
+//           let [x1, y1, x2, y2, x3, y3, x4, y4] = square;
+//           let score = 0;
+//           if (!grid[x1][y1].includes('shaded')) score++;
+//           if (!grid[x2][y2].includes('shaded')) score++;
+//           if (!grid[x3][y3].includes('shaded')) score++;
+//           if (!grid[x4][y4].includes('shaded')) score++;
+//           if (score > maxScore) {
+//             maxScore = score;
+//             bestSquare = square;
+//           }
+//         });
+//       }
+//       setSelectedSquare(bestSquare);
+//       let [x1, y1, x2, y2, x3, y3, x4, y4] = bestSquare;
+//       let newGrid = [...grid];
+//       let score = 0;
+//       if (!newGrid[x1][y1].includes('shaded')) { newGrid[x1][y1] += '-shaded'; score++; }
+//       if (!newGrid[x2][y2].includes('shaded')) { newGrid[x2][y2] += '-shaded'; score++; }
+//       if (!newGrid[x3][y3].includes('shaded')) { newGrid[x3][y3] += '-shaded'; score++; }
+//       if (!newGrid[x4][y4].includes('shaded')) { newGrid[x4][y4] += '-shaded'; score++; }
+//       setGrid(newGrid);
+//       if (currentPlayer === 'red') {
+//         setRedScore(prev => prev + score);
+//       } else {
+//         setBlueScore(prev => prev + score);
+//       }
+//       setHasClaimedThisTurn(true);
+//       setTimeout(() => {
+//         setSelectedSquare(null);
+//         if (isBoardFull(newGrid)) {
+//           finalRound();
+//         } else {
+//           switchPlayer();
+//         }
+//       }, 1500);
+//     } else {
+//       setHasClaimedThisTurn(true);
+//       setStatus(`${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}'s Turn (No Squares to Claim)`);
+//       if (isBoardFull(grid)) {
+//         finalRound();
+//       } else {
+//         switchPlayer();
+//       }
+//     }
+//   };
+
+//   const computerPlaceMark = () => {
+//     let emptyCells = [];
+//     for (let i = 0; i < 7; i++) {
+//       for (let j = 0; j < 7; j++) {
+//         if (!grid[i][j]) emptyCells.push([i, j]);
+//       }
+//     }
+//     if (emptyCells.length === 0) return;
+//     let bestMove = null;
+//     let maxScore = -Infinity;
+//     emptyCells.forEach(([row, col]) => {
+//       let tempGrid = JSON.parse(JSON.stringify(grid));
+//       tempGrid[row][col] = 'blue';
+//       let allPossibleSquares = findSquares('blue', tempGrid);
+//       let bestClaimScore = 0;
+//       if (allPossibleSquares.length > 0) {
+//         bestClaimScore = Math.max(...allPossibleSquares.map(square => {
+//           let unshadedCount = 0;
+//           for (let k = 0; k < 8; k += 2) {
+//             let r = square[k];
+//             let c = square[k + 1];
+//             if (!tempGrid[r][c].includes('shaded')) unshadedCount++;
+//           }
+//           return unshadedCount;
+//         }));
+//       }
+//       let blockTempGrid = JSON.parse(JSON.stringify(grid));
+//       blockTempGrid[row][col] = 'red';
+//       let opponentSquares = findSquares('red', blockTempGrid);
+//       let blockScore = opponentSquares.length > 0 ? 1 : 0;
+//       let positionalScore = positionalWeight[row][col];
+//       let totalScore = bestClaimScore + 5 * blockScore + positionalScore;
+//       if (totalScore > maxScore) {
+//         maxScore = totalScore;
+//         bestMove = [row, col];
+//       }
+//     });
+//     if (!bestMove) {
+//       bestMove = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+//     }
+//     let [row, col] = bestMove;
+//     let newGrid = [...grid];
+//     newGrid[row] = [...newGrid[row]];
+//     newGrid[row][col] = 'blue';
+//     setGrid(newGrid);
+//     setMarksPlacedThisTurn(1);
+//     setStatus("Blue's Turn (Claiming Square...)");
+    
+//     // Automatically claim square after placing mark
+//     setTimeout(() => {
+//       claimSquare(true);
+//     }, 1000);
+//   };
+
+//   const switchPlayer = () => {
+//     setCurrentPlayer(prev => prev === 'red' ? 'blue' : 'red');
+//     setMarksPlacedThisTurn(0);
+//     setHasClaimedThisTurn(false);
+//     setStatus(`${currentPlayer === 'red' ? 'Blue' : 'Red'}'s Turn (Place Mark)`);
+//   };
+
+//   const isBoardFull = (gridState) => {
+//     return gridState.every(row => row.every(cell => cell !== null));
+//   };
+
+//   const finalRound = () => {
+//     let squares = findSquares(currentPlayer, grid);
+//     if (squares.length > 0) {
+//       let bestSquare = squares[0];
+//       let maxScore = -1;
+//       squares.forEach(square => {
+//         let [x1, y1, x2, y2, x3, y3, x4, y4] = square;
+//         let score = 0;
+//         if (!grid[x1][y1].includes('shaded')) score++;
+//         if (!grid[x2][y2].includes('shaded')) score++;
+//         if (!grid[x3][y3].includes('shaded')) score++;
+//         if (!grid[x4][y4].includes('shaded')) score++;
+//         if (score > maxScore) {
+//           maxScore = score;
+//           bestSquare = square;
+//         }
+//       });
+//       setSelectedSquare(bestSquare);
+//       let [x1, y1, x2, y2, x3, y3, x4, y4] = bestSquare;
+//       let newGrid = [...grid];
+//       let score = 0;
+//       if (!newGrid[x1][y1].includes('shaded')) { newGrid[x1][y1] += '-shaded'; score++; }
+//       if (!newGrid[x2][y2].includes('shaded')) { newGrid[x2][y2] += '-shaded'; score++; }
+//       if (!newGrid[x3][y3].includes('shaded')) { newGrid[x3][y3] += '-shaded'; score++; }
+//       if (!newGrid[x4][y4].includes('shaded')) { newGrid[x4][y4] += '-shaded'; score++; }
+//       setGrid(newGrid);
+//       if (currentPlayer === 'red') {
+//         setRedScore(prev => prev + score);
+//       } else {
+//         setBlueScore(prev => prev + score);
+//       }
+//       setTimeout(() => {
+//         setSelectedSquare(null);
+//         setCurrentPlayer(prev => prev === 'red' ? 'blue' : 'red');
+//         setStatus(`${currentPlayer === 'red' ? 'Blue' : 'Red'}'s Turn (Claim Square or Pass)`);
+        
+//         // Check if game should end
+//         if (findSquares(currentPlayer === 'red' ? 'blue' : 'red', grid).length === 0) {
+//           setGameOver(true);
+//           let winner = redScore > blueScore ? 'Red' : blueScore > redScore ? 'Blue' : 'Tie';
+//           setStatus(`Game Over! Winner: ${winner}`);
+//         }
+//       }, 1500);
+//     } else {
+//       setCurrentPlayer(prev => prev === 'red' ? 'blue' : 'red');
+//       setStatus(`${currentPlayer === 'red' ? 'Blue' : 'Red'}'s Turn (Claim Square or Pass)`);
+      
+//       // Check if game should end
+//       if (findSquares(currentPlayer === 'red' ? 'blue' : 'red', grid).length === 0) {
+//         setGameOver(true);
+//         let winner = redScore > blueScore ? 'Red' : blueScore > redScore ? 'Blue' : 'Tie';
+//         setStatus(`Game Over! Winner: ${winner}`);
+//       }
+//     }
+//   };
+
+//   const startGame = (mode) => {
+//     setGameMode(mode);
+//     setGrid(Array(7).fill().map(() => Array(7).fill(null)));
+//     setCurrentPlayer('red');
+//     setRedScore(0);
+//     setBlueScore(0);
+//     setGameOver(false);
+//     setSelectedSquare(null);
+//     setMarksPlacedThisTurn(0);
+//     setHasClaimedThisTurn(false);
+//     setStatus("Red's Turn (Place Mark)");
+//   };
+
+//   return (
+//     <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-auto">
+//       <h1 className="text-2xl font-bold text-center mb-4 text-gray-800">Corners Game</h1>
+//       {!gameMode ? (
+//         <div className="text-center">
+//           <h2 className="text-lg font-semibold mb-2">Select Game Mode</h2>
+//           <div className="flex justify-center space-x-4">
+//             <label className="flex items-center">
+//               <input
+//                 type="radio"
+//                 name="gameMode"
+//                 value="twoPlayer"
+//                 onChange={() => startGame('twoPlayer')}
+//                 className="mr-2"
+//               />
+//               2 Players
+//             </label>
+//             <label className="flex items-center">
+//               <input
+//                 type="radio"
+//                 name="gameMode"
+//                 value="vsComputer"
+//                 onChange={() => startGame('vsComputer')}
+//                 className="mr-2"
+//               />
+//               Vs. Computer
+//             </label>
+//           </div>
+//         </div>
+//       ) : (
+//         <>
+//           <div id="game-canvas" className="border border-gray-300 mx-auto"></div>
+//           <div className="text-center mt-4">
+//             <div className={`text-lg font-semibold ${gameOver ? 'text-gray-600' : currentPlayer === 'red' ? 'text-red-600' : 'text-blue-600'}`}>
+//               {status}
+//             </div>
+//             <div className="text-md mt-2">
+//               <span className="text-red-600">Red: {redScore}</span> | <span className="text-blue-600">Blue: {blueScore}</span>
+//             </div>
+//             <button
+//               onClick={() => claimSquare(false)}
+//               disabled={gameOver || hasClaimedThisTurn || marksPlacedThisTurn === 0 || (gameMode === 'vsComputer' && currentPlayer === 'blue')}
+//               className={`mt-4 px-4 py-2 rounded-lg font-semibold text-white transition duration-300 
+//                 ${gameOver || hasClaimedThisTurn || marksPlacedThisTurn === 0 || (gameMode === 'vsComputer' && currentPlayer === 'blue') ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}
+//             >
+//               Claim Square or Pass
+//             </button>
+//             <button
+//               onClick={() => startGame(null)}
+//               className="mt-2 px-4 py-2 rounded-lg font-semibold text-white bg-blue-500 hover:bg-blue-600 transition duration-300"
+//             >
+//               Restart Game
+//             </button>
+//           </div>
+//         </>
+//       )}
+//     </div>
+//   );
+// };
+
+// export default App;
+
+import React, { useState, useEffect, useRef } from 'react';
+import p5 from 'p5';
+import './index.css';
+
+const positionalWeight = Array.from({length: 7}, (_, i) => 
+  Array.from({length: 7}, (_, j) => 4 - Math.max(Math.abs(i - 3), Math.abs(j - 3)))
+);
+
+const App = () => {
+  const [gameMode, setGameMode] = useState(null);
+  const [grid, setGrid] = useState(() => Array(7).fill().map(() => Array(7).fill(null)));
+  const [currentPlayer, setCurrentPlayer] = useState('red');
+  const [redScore, setRedScore] = useState(0);
+  const [blueScore, setBlueScore] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
+  const [selectedSquare, setSelectedSquare] = useState(null);
+  const [marksPlacedThisTurn, setMarksPlacedThisTurn] = useState(0);
+  const [hasClaimedThisTurn, setHasClaimedThisTurn] = useState(false);
+  const [status, setStatus] = useState("Select Game Mode");
+  const p5Ref = useRef(null);
+  const canvasRef = useRef(null);
+  const gridRef = useRef(grid);
+
+  // Keep gridRef updated with current grid state
+  useEffect(() => {
+    gridRef.current = grid;
+  }, [grid]);
+
+  // Handle computer turns automatically
+  useEffect(() => {
+    if (gameMode === 'vsComputer' && currentPlayer === 'blue' && !gameOver && !hasClaimedThisTurn) {
+      const timer = setTimeout(() => {
+        if (marksPlacedThisTurn === 0) {
+          computerPlaceMark();
+        } else {
+          claimSquare(true);
+        }
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [gameMode, currentPlayer, gameOver, marksPlacedThisTurn, hasClaimedThisTurn]);
+
+  useEffect(() => {
+    if (gameMode) {
+      const sketch = (p) => {
+        p.setup = () => {
+          let canvas = p.createCanvas(350, 350);
+          canvasRef.current = canvas;
+          canvas.parent('game-canvas');
+        };
+
+        p.draw = () => {
+          p.background(255);
+          p.stroke(0);
+          p.strokeWeight(2);
+          for (let i = 0; i <= 7; i++) {
+            p.line(i * 50, 0, i * 50, 350);
+            p.line(0, i * 50, 350, i * 50);
+          }
+          for (let i = 0; i < 7; i++) {
+            for (let j = 0; j < 7; j++) {
+              if (grid[i][j]) {
+                let isShaded = grid[i][j].includes('shaded');
+                if (grid[i][j].includes('red')) {
+                  p.fill(255, 0, 0);
+                  p.ellipse(j * 50 + 25, i * 50 + 25, 30, 30);
+                  if (isShaded) {
+                    p.fill(200, 0, 0);
+                    p.ellipse(j * 50 + 25, i * 50 + 25, 15, 15);
+                  }
+                } else if (grid[i][j].includes('blue')) {
+                  p.fill(0, 0, 255);
+                  p.ellipse(j * 50 + 25, i * 50 + 25, 30, 30);
+                  if (isShaded) {
+                    p.fill(0, 0, 200);
+                    p.ellipse(j * 50 + 25, i * 50 + 25, 15, 15);
+                  }
+                }
+              }
+            }
+          }
+          if (selectedSquare) {
+            p.stroke(0, 255, 0);
+            p.strokeWeight(6);
+            p.noFill();
+            let [x1, y1, x2, y2, x3, y3, x4, y4] = selectedSquare;
+            let points = [[x1, y1], [x2, y2], [x3, y3], [x4, y4]];
+            points.sort((a, b) => (a[0] === b[0] ? a[1] - b[1] : a[0] - b[0]));
+            p.quad(
+              points[0][1] * 50 + 25, points[0][0] * 50 + 25,
+              points[1][1] * 50 + 25, points[1][0] * 50 + 25,
+              points[2][1] * 50 + 25, points[2][0] * 50 + 25,
+              points[3][1] * 50 + 25, points[3][0] * 50 + 25
+            );
+          }
+        };
+
+        p.mousePressed = () => {
+          if (gameOver || marksPlacedThisTurn > 0 || (gameMode === 'vsComputer' && currentPlayer === 'blue')) return;
+          let row = Math.floor(p.mouseY / 50);
+          let col = Math.floor(p.mouseX / 50);
+          if (row >= 0 && row < 7 && col >= 0 && col < 7 && !grid[row][col]) {
+            let newGrid = [...grid];
+            newGrid[row] = [...newGrid[row]];
+            newGrid[row][col] = currentPlayer;
+            setGrid(newGrid);
+            setMarksPlacedThisTurn(1);
+            setStatus(`${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}'s Turn (Claim Square or Pass)`);
+            if (isBoardFull(newGrid)) {
+              finalRound();
+            }
+          }
+        };
+      };
+
+      p5Ref.current = new p5(sketch);
+      return () => p5Ref.current.remove();
+    }
+  }, [gameMode, grid, currentPlayer, gameOver, marksPlacedThisTurn, selectedSquare]);
+
+  const findSquares = (player, currentGrid) => {
+    let squares = [];
+    let playerMarks = [];
+    for (let i = 0; i < 7; i++) {
+      for (let j = 0; j < 7; j++) {
+        if (currentGrid[i][j]?.includes(player)) {
+          playerMarks.push([i, j]);
+        }
+      }
+    }
+    
+    if (playerMarks.length < 4) return squares;
+    
+    for (let a = 0; a < playerMarks.length; a++) {
+      for (let b = a + 1; b < playerMarks.length; b++) {
+        for (let c = b + 1; c < playerMarks.length; c++) {
+          for (let d = c + 1; d < playerMarks.length; d++) {
+            let points = [playerMarks[a], playerMarks[b], playerMarks[c], playerMarks[d]];
+            if (isSquare(points)) {
+              let sortedPoints = [...points].sort((p1, p2) => p1[0] - p2[0] || p1[1] - p2[1]);
+              squares.push([
+                sortedPoints[0][0], sortedPoints[0][1],
+                sortedPoints[1][0], sortedPoints[1][1],
+                sortedPoints[2][0], sortedPoints[2][1],
+                sortedPoints[3][0], sortedPoints[3][1]
+              ]);
+            }
+          }
+        }
+      }
+    }
+    return squares;
+  };
+
+  const isSquare = (points) => {
+    const epsilon = 1e-6;
+    let distances = [];
+    for (let i = 0; i < 4; i++) {
+      for (let j = i + 1; j < 4; j++) {
+        let dx = points[i][0] - points[j][0];
+        let dy = points[i][1] - points[j][1];
+        let dist = Math.sqrt(dx * dx + dy * dy);
+        distances.push(dist);
+      }
+    }
+    distances.sort((a, b) => a - b);
+    
+    // We should have 4 equal sides and 2 equal diagonals
+    if (Math.abs(distances[0] - distances[1]) > epsilon) return false;
+    if (Math.abs(distances[0] - distances[2]) > epsilon) return false;
+    if (Math.abs(distances[0] - distances[3]) > epsilon) return false;
+    if (Math.abs(distances[4] - distances[5]) > epsilon) return false;
+    
+    // Diagonal should be side * √2
+    if (Math.abs(distances[4] - (distances[0] * Math.sqrt(2))) > epsilon) return false;
+    
+    return true;
+  };
+
+  const claimSquare = (isComputer = false) => {
+    if (gameOver || hasClaimedThisTurn || marksPlacedThisTurn === 0) return;
+    
+    const currentGrid = gridRef.current;
+    let squares = findSquares(currentPlayer, currentGrid);
+    
+    if (squares.length > 0) {
+      let bestSquare = squares[0];
+      let maxScore = -1;
+      
+      // Find square with the most unshaded dots
+      squares.forEach(square => {
+        let [x1, y1, x2, y2, x3, y3, x4, y4] = square;
+        let score = 0;
+        if (!currentGrid[x1][y1].includes('shaded')) score++;
+        if (!currentGrid[x2][y2].includes('shaded')) score++;
+        if (!currentGrid[x3][y3].includes('shaded')) score++;
+        if (!currentGrid[x4][y4].includes('shaded')) score++;
+        if (score > maxScore) {
+          maxScore = score;
+          bestSquare = square;
+        }
+      });
+      
+      setSelectedSquare(bestSquare);
+      let [x1, y1, x2, y2, x3, y3, x4, y4] = bestSquare;
+      
+      let newGrid = currentGrid.map(row => [...row]);
+      let score = 0;
+      
+      if (!newGrid[x1][y1].includes('shaded')) { 
+        newGrid[x1][y1] += '-shaded'; 
+        score++; 
+      }
+      if (!newGrid[x2][y2].includes('shaded')) { 
+        newGrid[x2][y2] += '-shaded'; 
+        score++; 
+      }
+      if (!newGrid[x3][y3].includes('shaded')) { 
+        newGrid[x3][y3] += '-shaded'; 
+        score++; 
+      }
+      if (!newGrid[x4][y4].includes('shaded')) { 
+        newGrid[x4][y4] += '-shaded'; 
+        score++; 
+      }
+      
+      setGrid(newGrid);
+      if (currentPlayer === 'red') {
+        setRedScore(prev => prev + score);
+      } else {
+        setBlueScore(prev => prev + score);
+      }
+      
+      setHasClaimedThisTurn(true);
+      setTimeout(() => {
+        setSelectedSquare(null);
+        if (isBoardFull(newGrid)) {
+          finalRound();
+        } else {
+          switchPlayer();
+        }
+      }, 1200);
+    } else {
+      setHasClaimedThisTurn(true);
+      setStatus(`${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}'s Turn (No Squares to Claim)`);
+      setTimeout(() => {
+        if (isBoardFull(currentGrid)) {
+          finalRound();
+        } else {
+          switchPlayer();
+        }
+      }, 800);
+    }
+  };
+
+  const computerPlaceMark = () => {
+    setStatus("Blue's Turn (Thinking...)");
+    
+    setTimeout(() => {
+      const currentGrid = gridRef.current;
+      let emptyCells = [];
+      for (let i = 0; i < 7; i++) {
+        for (let j = 0; j < 7; j++) {
+          if (!currentGrid[i][j]) emptyCells.push([i, j]);
+        }
+      }
+      
+      if (emptyCells.length === 0) return;
+      
+      let bestMove = null;
+      let maxScore = -Infinity;
+      
+      emptyCells.forEach(([row, col]) => {
+        let tempGrid = currentGrid.map(r => [...r]);
+        tempGrid[row][col] = 'blue';
+        
+        // Score 1: Potential to form squares
+        let allPossibleSquares = findSquares('blue', tempGrid);
+        let claimScore = allPossibleSquares.reduce((max, square) => {
+          let unshadedCount = 0;
+          for (let k = 0; k < 8; k += 2) {
+            let r = square[k];
+            let c = square[k + 1];
+            if (!tempGrid[r][c].includes('shaded')) unshadedCount++;
+          }
+          return Math.max(max, unshadedCount);
+        }, 0);
+        
+        // Score 2: Block opponent squares
+        let blockScore = 0;
+        let opponentTempGrid = currentGrid.map(r => [...r]);
+        opponentTempGrid[row][col] = 'red';
+        let opponentSquares = findSquares('red', opponentTempGrid);
+        if (opponentSquares.length > 0) {
+          blockScore = 5; // High priority to block
+        }
+        
+        // Score 3: Positional advantage
+        let positionalScore = positionalWeight[row][col];
+        
+        // Score 4: Potential to create multiple squares
+        let multiSquareBonus = Math.min(allPossibleSquares.length, 3);
+        
+        let totalScore = claimScore * 2 + blockScore + positionalScore + multiSquareBonus;
+        
+        if (totalScore > maxScore) {
+          maxScore = totalScore;
+          bestMove = [row, col];
+        }
+      });
+      
+      if (!bestMove) {
+        bestMove = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+      }
+      
+      let [row, col] = bestMove;
+      let newGrid = currentGrid.map(r => [...r]);
+      newGrid[row][col] = 'blue';
+      
+      setGrid(newGrid);
+      setMarksPlacedThisTurn(1);
+      setStatus("Blue's Turn (Claiming Square...)");
+    }, 800);
+  };
+
+  const switchPlayer = () => {
+    const nextPlayer = currentPlayer === 'red' ? 'blue' : 'red';
+    setCurrentPlayer(nextPlayer);
+    setMarksPlacedThisTurn(0);
+    setHasClaimedThisTurn(false);
+    setStatus(`${nextPlayer.charAt(0).toUpperCase() + nextPlayer.slice(1)}'s Turn (Place Mark)`);
+  };
+
+  const isBoardFull = (gridState) => {
+    return gridState.every(row => row.every(cell => cell !== null));
+  };
+
+  const finalRound = () => {
+    const currentGrid = gridRef.current;
+    let squares = findSquares(currentPlayer, currentGrid);
+    
+    if (squares.length > 0) {
+      let bestSquare = squares[0];
+      let maxScore = -1;
+      
+      squares.forEach(square => {
+        let [x1, y1, x2, y2, x3, y3, x4, y4] = square;
+        let score = 0;
+        if (!currentGrid[x1][y1].includes('shaded')) score++;
+        if (!currentGrid[x2][y2].includes('shaded')) score++;
+        if (!currentGrid[x3][y3].includes('shaded')) score++;
+        if (!currentGrid[x4][y4].includes('shaded')) score++;
+        if (score > maxScore) {
+          maxScore = score;
+          bestSquare = square;
+        }
+      });
+      
+      setSelectedSquare(bestSquare);
+      let [x1, y1, x2, y2, x3, y3, x4, y4] = bestSquare;
+      let newGrid = currentGrid.map(row => [...row]);
+      let score = 0;
+      
+      if (!newGrid[x1][y1].includes('shaded')) { newGrid[x1][y1] += '-shaded'; score++; }
+      if (!newGrid[x2][y2].includes('shaded')) { newGrid[x2][y2] += '-shaded'; score++; }
+      if (!newGrid[x3][y3].includes('shaded')) { newGrid[x3][y3] += '-shaded'; score++; }
+      if (!newGrid[x4][y4].includes('shaded')) { newGrid[x4][y4] += '-shaded'; score++; }
+      
+      setGrid(newGrid);
+      if (currentPlayer === 'red') {
+        setRedScore(prev => prev + score);
+      } else {
+        setBlueScore(prev => prev + score);
+      }
+      
+      setTimeout(() => {
+        setSelectedSquare(null);
+        const nextPlayer = currentPlayer === 'red' ? 'blue' : 'red';
+        setCurrentPlayer(nextPlayer);
+        setStatus(`${nextPlayer.charAt(0).toUpperCase() + nextPlayer.slice(1)}'s Turn (Claim Square or Pass)`);
+        
+        // Check if game should end
+        if (findSquares(nextPlayer, newGrid).length === 0) {
+          endGame();
+        }
+      }, 1200);
+    } else {
+      const nextPlayer = currentPlayer === 'red' ? 'blue' : 'red';
+      setCurrentPlayer(nextPlayer);
+      setStatus(`${nextPlayer.charAt(0).toUpperCase() + nextPlayer.slice(1)}'s Turn (Claim Square or Pass)`);
+      
+      // Check if game should end
+      if (findSquares(nextPlayer, currentGrid).length === 0) {
+        endGame();
+      }
+    }
+  };
+
+  const endGame = () => {
+    setGameOver(true);
+    let winner = '';
+    if (redScore > blueScore) winner = 'Red';
+    else if (blueScore > redScore) winner = 'Blue';
+    else winner = 'Tie';
+    
+    setStatus(`Game Over! Winner: ${winner}`);
+  };
+
+  const startGame = (mode) => {
+    setGameMode(mode);
+    setGrid(Array(7).fill().map(() => Array(7).fill(null)));
+    setCurrentPlayer('red');
+    setRedScore(0);
+    setBlueScore(0);
+    setGameOver(false);
+    setSelectedSquare(null);
+    setMarksPlacedThisTurn(0);
+    setHasClaimedThisTurn(false);
+    setStatus("Red's Turn (Place Mark)");
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-auto">
+      <h1 className="text-2xl font-bold text-center mb-4 text-gray-800">Corners Game</h1>
+      {!gameMode ? (
+        <div className="text-center">
+          <h2 className="text-lg font-semibold mb-2">Select Game Mode</h2>
+          <div className="flex justify-center space-x-4">
+            <button
+              onClick={() => startGame('twoPlayer')}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+            >
+              2 Players
+            </button>
+            <button
+              onClick={() => startGame('vsComputer')}
+              className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition"
+            >
+              Vs. Computer
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div id="game-canvas" className="border border-gray-300 mx-auto"></div>
+          <div className="text-center mt-4">
+            <div className={`text-lg font-semibold ${gameOver ? 'text-gray-600' : currentPlayer === 'red' ? 'text-red-600' : 'text-blue-600'}`}>
+              {status}
+            </div>
+            <div className="text-md mt-2">
+              <span className="text-red-600 font-medium">Red: {redScore}</span> | 
+              <span className="text-blue-600 font-medium"> Blue: {blueScore}</span>
+            </div>
+            <button
+              onClick={() => claimSquare(false)}
+              disabled={gameOver || hasClaimedThisTurn || marksPlacedThisTurn === 0 || (gameMode === 'vsComputer' && currentPlayer === 'blue')}
+              className={`mt-4 px-4 py-2 rounded-lg font-semibold text-white transition duration-300 
+                ${gameOver || hasClaimedThisTurn || marksPlacedThisTurn === 0 || (gameMode === 'vsComputer' && currentPlayer === 'blue') 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-green-500 hover:bg-green-600'}`}
+            >
+              Claim Square or Pass
+            </button>
+            <button
+              onClick={() => startGame(null)}
+              className="mt-4 ml-2 px-4 py-2 rounded-lg font-semibold text-white bg-blue-500 hover:bg-blue-600 transition duration-300"
+            >
+              Restart Game
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+export default App;
