@@ -20,13 +20,12 @@ const App = () => {
   const gridRef = useRef(grid);
   const [phase, setPhase] = useState('claim'); // 'claim' or 'place'
   const [canPass, setCanPass] = useState(false);
+  const [winner, setWinner] = useState(null);
 
-  // Keep gridRef updated with current grid state
   useEffect(() => {
     gridRef.current = grid;
   }, [grid]);
 
-  // Handle computer turns automatically
   useEffect(() => {
     if (gameMode === 'vsComputer' && currentPlayer === 'blue' && !gameOver) {
       const timer = setTimeout(() => {
@@ -85,7 +84,7 @@ const App = () => {
             p.noFill();
             let [x1, y1, x2, y2, x3, y3, x4, y4] = selectedSquare;
             let points = [[x1, y1], [x2, y2], [x3, y3], [x4, y4]];
-            points.sort((a, b) => (a[0] === b[0] ? a[1] - b[1] : a[0] - b[0]));
+            points.sort((a, b) => (a[0] === b[1] ? a[1] - b[1] : a[0] - b[0]));
             p.quad(
               points[0][1] * 50 + 25, points[0][0] * 50 + 25,
               points[1][1] * 50 + 25, points[1][0] * 50 + 25,
@@ -105,12 +104,8 @@ const App = () => {
             newGrid[row][col] = currentPlayer;
             setGrid(newGrid);
             if (isBoardFull(newGrid)) {
-              setPhase('claim');
-              setStatus(`${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}'s Turn (Claim Square)`);
-              setCanPass(true);
-              if (gameMode === 'vsComputer' && currentPlayer === 'blue') {
-                setTimeout(() => claimSquare(true), 800);
-              }
+              setStatus("Calculating final scores...");
+              setTimeout(() => countFinalScores(newGrid), 800);
             } else {
               switchPlayer();
             }
@@ -170,16 +165,80 @@ const App = () => {
     }
     distances.sort((a, b) => a - b);
     
-    // We should have 4 equal sides and 2 equal diagonals
     if (Math.abs(distances[0] - distances[1]) > epsilon) return false;
     if (Math.abs(distances[0] - distances[2]) > epsilon) return false;
     if (Math.abs(distances[0] - distances[3]) > epsilon) return false;
     if (Math.abs(distances[4] - distances[5]) > epsilon) return false;
     
-    // Diagonal should be side * √2
     if (Math.abs(distances[4] - (distances[0] * Math.sqrt(2))) > epsilon) return false;
     
     return true;
+  };
+
+  const countFinalScores = (finalGrid) => {
+    let newGrid = finalGrid.map(row => [...row]);
+    let redPoints = 0;
+    let bluePoints = 0;
+    
+    // Function to score squares for a player
+    const scorePlayerSquares = (player) => {
+      let points = 0;
+      let squares = findSquares(player, newGrid);
+      while (squares.length > 0) {
+        // Find the square with the most unshaded dots
+        let bestSquare = squares[0];
+        let maxScore = -1;
+        squares.forEach(square => {
+          let [x1, y1, x2, y2, x3, y3, x4, y4] = square;
+          let score = 0;
+          if (!newGrid[x1][y1]?.includes('shaded')) score++;
+          if (!newGrid[x2][y2]?.includes('shaded')) score++;
+          if (!newGrid[x3][y3]?.includes('shaded')) score++;
+          if (!newGrid[x4][y4]?.includes('shaded')) score++;
+          if (score > maxScore) {
+            maxScore = score;
+            bestSquare = square;
+          }
+        });
+        
+        if (maxScore <= 0) break; // No more unshaded dots to score
+        
+        // Score the best square and shade its dots
+        let [x1, y1, x2, y2, x3, y3, x4, y4] = bestSquare;
+        if (!newGrid[x1][y1]?.includes('shaded')) {
+          newGrid[x1][y1] = (newGrid[x1][y1] || player) + '-shaded';
+          points++;
+        }
+        if (!newGrid[x2][y2]?.includes('shaded')) {
+          newGrid[x2][y2] = (newGrid[x2][y2] || player) + '-shaded';
+          points++;
+        }
+        if (!newGrid[x3][y3]?.includes('shaded')) {
+          newGrid[x3][y3] = (newGrid[x3][y3] || player) + '-shaded';
+          points++;
+        }
+        if (!newGrid[x4][y4]?.includes('shaded')) {
+          newGrid[x4][y4] = (newGrid[x4][y4] || player) + '-shaded';
+          points++;
+        }
+        
+        // Update grid and re-find squares
+        setGrid(newGrid);
+        setSelectedSquare(bestSquare);
+        setTimeout(() => setSelectedSquare(null), 800);
+        squares = findSquares(player, newGrid);
+      }
+      return points;
+    };
+    
+    // Score for both players, alternating to avoid conflicts
+    redPoints = scorePlayerSquares('red');
+    bluePoints = scorePlayerSquares('blue');
+    
+    // Update scores and end game
+    setRedScore(prev => prev + redPoints);
+    setBlueScore(prev => prev + bluePoints);
+    setTimeout(() => endGame(), 1000);
   };
 
   const claimSquare = (isComputer = false) => {
@@ -192,7 +251,6 @@ const App = () => {
       let bestSquare = squares[0];
       let maxScore = -1;
       
-      // Find square with the most unshaded dots
       squares.forEach(square => {
         let [x1, y1, x2, y2, x3, y3, x4, y4] = square;
         let score = 0;
@@ -238,35 +296,23 @@ const App = () => {
       
       setTimeout(() => {
         setSelectedSquare(null);
-        if (isBoardFull(currentGrid)) {
-          finalRound();
-        } else {
-          setPhase('place');
-          setStatus(`${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}'s Turn (Place Mark)`);
-          setCanPass(false);
-        }
-      }, 1200);
-    } else {
-      // No squares to claim, move to placement phase or final round if board is full
-      if (isBoardFull(currentGrid)) {
-        finalRound();
-      } else {
         setPhase('place');
         setStatus(`${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}'s Turn (Place Mark)`);
-        setCanPass(true);
-      }
-    }
-  };
-
-  const passClaim = () => {
-    if (gameOver || phase !== 'claim') return;
-    if (isBoardFull(gridRef.current)) {
-      finalRound();
+        setCanPass(false);
+      }, 1200);
     } else {
       setPhase('place');
       setStatus(`${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}'s Turn (Place Mark)`);
       setCanPass(true);
     }
+  };
+
+  const passClaim = () => {
+    if (gameOver || phase !== 'claim') return;
+    
+    setPhase('place');
+    setStatus(`${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}'s Turn (Place Mark)`);
+    setCanPass(true);
   };
 
   const computerPlaceMark = () => {
@@ -293,7 +339,6 @@ const App = () => {
         let tempGrid = currentGrid.map(r => [...r]);
         tempGrid[row][col] = 'blue';
         
-        // Score 1: Potential to form squares
         let allPossibleSquares = findSquares('blue', tempGrid);
         let claimScore = allPossibleSquares.reduce((max, square) => {
           let unshadedCount = 0;
@@ -305,21 +350,16 @@ const App = () => {
           return Math.max(max, unshadedCount);
         }, 0);
         
-        // Score 2: Block opponent squares
         let blockScore = 0;
         let opponentTempGrid = currentGrid.map(r => [...r]);
         opponentTempGrid[row][col] = 'red';
         let opponentSquares = findSquares('red', opponentTempGrid);
         if (opponentSquares.length > 0) {
-          blockScore = 5; // High priority to block
+          blockScore = 5;
         }
         
-        // Score 3: Positional advantage
         let positionalScore = positionalWeight[row][col];
-        
-        // Score 4: Potential to create multiple squares
         let multiSquareBonus = Math.min(allPossibleSquares.length, 3);
-        
         let totalScore = claimScore * 2 + blockScore + positionalScore + multiSquareBonus;
         
         if (totalScore > maxScore) {
@@ -340,10 +380,8 @@ const App = () => {
       setStatus("Blue placed a mark");
       
       if (isBoardFull(newGrid)) {
-        setPhase('claim');
-        setStatus("Blue's Turn (Claim Square)");
-        setCanPass(true);
-        setTimeout(() => claimSquare(true), 800);
+        setStatus("Calculating final scores...");
+        setTimeout(() => countFinalScores(newGrid), 800);
       } else {
         switchPlayer();
       }
@@ -362,57 +400,11 @@ const App = () => {
     return gridState.every(row => row.every(cell => cell !== null));
   };
 
-  const finalRound = () => {
-    const currentGrid = gridRef.current;
-    let squares = findSquares(currentPlayer, currentGrid);
-    
-    if (squares.length > 0) {
-      let bestSquare = squares[0];
-      let maxScore = -1;
-      
-      squares.forEach(square => {
-        let [x1, y1, x2, y2, x3, y3, x4, y4] = square;
-        let score = 0;
-        if (!currentGrid[x1][y1].includes('shaded')) score++;
-        if (!currentGrid[x2][y2].includes('shaded')) score++;
-        if (!currentGrid[x3][y3].includes('shaded')) score++;
-        if (!currentGrid[x4][y4].includes('shaded')) score++;
-        if (score > maxScore) {
-          maxScore = score;
-          bestSquare = square;
-        }
-      });
-      
-      setSelectedSquare(bestSquare);
-      let [x1, y1, x2, y2, x3, y3, x4, y4] = bestSquare;
-      let newGrid = currentGrid.map(row => [...row]);
-      let score = 0;
-      
-      if (!newGrid[x1][y1].includes('shaded')) { newGrid[x1][y1] += '-shaded'; score++; }
-      if (!newGrid[x2][y2].includes('shaded')) { newGrid[x2][y2] += '-shaded'; score++; }
-      if (!newGrid[x3][y3].includes('shaded')) { newGrid[x3][y3] += '-shaded'; score++; }
-      if (!newGrid[x4][y4].includes('shaded')) { newGrid[x4][y4] += '-shaded'; score++; }
-      
-      setGrid(newGrid);
-      if (currentPlayer === 'red') {
-        setRedScore(prev => prev + score);
-      } else {
-        setBlueScore(prev => prev + score);
-      }
-      
-      setTimeout(() => {
-        setSelectedSquare(null);
-        endGame();
-      }, 1200);
-    } else {
-      endGame();
-    }
-  };
-
   const endGame = () => {
     setGameOver(true);
-    let winner = redScore > blueScore ? 'Red' : blueScore > redScore ? 'Blue' : 'Tie';
-    setStatus(`Game Over! Winner: ${winner} (Red: ${redScore}, Blue: ${blueScore})`);
+    let winnerResult = redScore > blueScore ? 'Red' : blueScore > redScore ? 'Blue' : 'Tie';
+    setWinner(winnerResult);
+    setStatus(`Game Over! Final Scores - Red: ${redScore}, Blue: ${blueScore}`);
   };
 
   const startGame = (mode) => {
@@ -426,6 +418,7 @@ const App = () => {
     setPhase('claim');
     setStatus("Red's Turn (Claim Square)");
     setCanPass(true);
+    setWinner(null);
   };
 
   return (
@@ -456,6 +449,11 @@ const App = () => {
             <div className={`text-lg font-semibold ${gameOver ? 'text-gray-600' : currentPlayer === 'red' ? 'text-red-600' : 'text-blue-600'}`}>
               {status}
             </div>
+            {gameOver && winner && (
+              <div className={`text-xl font-bold mt-2 ${winner === 'Red' ? 'text-red-600' : winner === 'Blue' ? 'text-blue-600' : 'text-gray-600'}`}>
+                {winner === 'Tie' ? 'It’s a Tie!' : `${winner} Wins!`}
+              </div>
+            )}
             <div className="text-md mt-2">
               <span className="text-red-600 font-medium">Red: {redScore}</span> | 
               <span className="text-blue-600 font-medium"> Blue: {blueScore}</span>
